@@ -82,6 +82,7 @@ class OrukeetSTTBackend:
     """Serialize model initialization and recognition without blocking the event loop."""
 
     def __init__(self) -> None:
+        """Create a lazy recognizer with one lock for loading and inference."""
         self._model = None
         self._lock = threading.Lock()
 
@@ -105,6 +106,7 @@ class OrukeetSTTBackend:
         return await asyncio.to_thread(self._transcribe, np.asarray(audio, dtype=np.float32), sample_rate)
 
     def _transcribe(self, audio: np.ndarray, sample_rate: int) -> str:
+        """Load the verified CPU model once and recognize under the shared lock."""
         with self._lock:
             if self._model is None:
                 try:

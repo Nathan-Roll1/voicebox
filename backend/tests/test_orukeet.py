@@ -96,7 +96,7 @@ async def test_unsupported_language_is_rejected():
 
 
 def test_concurrent_first_requests_load_once(monkeypatch):
-    import onnx_asr
+    onnx_asr = pytest.importorskip("onnx_asr")
 
     model = Mock(recognize=Mock(return_value="Hello."))
     load = Mock(return_value=model)

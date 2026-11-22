@@ -55,6 +55,9 @@ def install():
             for binary in directory.glob(pattern):
                 if binary.stem.lower() == "voicebox":
                     print("MSI_INSTALLED", digest, binary, flush=True)
+                    signature = subprocess.run(["powershell.exe","-NoProfile","-Command",
+                        f"(Get-AuthenticodeSignature -LiteralPath '{msi}').Status"], capture_output=True, text=True)
+                    print("WINDOWS_AUTHENTICODE", signature.stdout.strip(), flush=True)
                     return binary
     raise RuntimeError("Installed executable missing")
 
@@ -71,7 +74,9 @@ def fixture():
 
 
 def choose_and_download(page):
-    page.goto(ORIGIN + "/settings/captures")
+    page.goto(ORIGIN)
+    page.locator('a[href="/captures"]').first.click(timeout=60000)
+    page.locator('a[href="/settings/captures"]').first.click()
     combo = page.get_by_role("combobox").filter(has_text=re.compile("Whisper", re.I))
     combo.wait_for(timeout=60000)
     combo.click()
@@ -81,11 +86,12 @@ def choose_and_download(page):
     if toggle.get_attribute("aria-checked") == "true":
         toggle.click()
     wait_for(lambda: not get("/settings/captures")["auto_refine"], "raw dictation mode")
-    page.goto(ORIGIN + "/captures")
+    page.locator('a[href="/captures"]').first.click()
     assert not get("/capture/readiness")["stt"]["ready"]
     page.get_by_role("button", name="Download", exact=True).first.click(timeout=30000)
     wait_for(lambda: get("/capture/readiness")["stt"]["ready"], "complete original-card model download", 450)
     page.get_by_role("button", name="Dictate", exact=True).wait_for(timeout=45000)
+    wait_for(lambda: all(row["model_name"] != MODEL for row in get("/tasks/active")["downloads"]), "download toast closes")
     print("UI_COLD_INSTALL selector/download/readiness/Dictate", flush=True)
 
 
@@ -146,8 +152,10 @@ def main():
             native = p.chromium.connect_over_cdp("http://127.0.0.1:9223")
             page = wait_for(lambda: native_page(native), "native Tauri window")
             try:
-                page.context.grant_permissions(["microphone"], origin="http://tauri.localhost")
-                page.get_by_role("link", name="Captures", exact=True).first.click(timeout=45000)
+                from urllib.parse import urlsplit
+                origin = urlsplit(page.url)
+                page.context.grant_permissions(["microphone"], origin=f"{origin.scheme}://{origin.netloc}")
+                page.locator('a[href="/captures"]').first.click(timeout=45000)
                 record(page, "signed Voicebox 0.6.0 MSI + current PR external backend, Microsoft WebView2")
             except Exception:
                 print("NATIVE_URL", page.url, "NATIVE_SCREEN", page.locator("body").inner_text()[:3000], flush=True)

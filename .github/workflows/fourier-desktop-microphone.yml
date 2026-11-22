@@ -38,6 +38,6 @@ jobs:
           bun run build:web
           cp -R web/dist frontend
           python -m pytest -q backend/tests/test_fourier_stt.py --disable-warnings
-      - name: Install signed desktop MSI and exercise the real recording controls
+      - name: Install official desktop MSI and exercise the real recording controls
         shell: pwsh
         run: python .github/qa/voicebox-microphone.py

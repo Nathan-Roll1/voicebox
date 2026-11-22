@@ -305,7 +305,7 @@ async def get_model_status():
     except ImportError:
         use_scan_cache = False
 
-    from ..backends import get_all_model_configs, check_model_loaded
+    from ..backends import get_all_model_configs, check_model_loaded, fourier_stt
     from ..backends.base import has_in_progress_download, is_model_cached
 
     registry_configs = get_all_model_configs()
@@ -404,6 +404,10 @@ async def get_model_status():
                                     pass
                 except Exception:
                     pass
+
+            if config["model_name"] == fourier_stt.MODEL:
+                downloaded = fourier_stt.is_cached()
+                size_mb = 2409908809 / (1024 * 1024) if downloaded else None
 
             # A model whose backend also pulls auxiliary repos at load time
             # (e.g. Chatterbox MLX's S3 tokenizer) is only downloaded once
@@ -530,6 +534,10 @@ async def delete_model(model_name: str):
 
         cache_dir = hf_constants.HF_HUB_CACHE
         repo_cache_dir = Path(cache_dir) / ("models--" + hf_repo_id.replace("/", "--"))
+
+        if config.engine == "fourier":
+            from ..backends.fourier_stt import cached_directory
+            repo_cache_dir = cached_directory().parent.parent
 
         if not repo_cache_dir.exists():
             raise HTTPException(status_code=404, detail=f"Model {model_name} not found in cache")

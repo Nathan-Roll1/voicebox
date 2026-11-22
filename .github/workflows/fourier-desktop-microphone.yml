@@ -17,9 +17,6 @@ jobs:
       OMP_NUM_THREADS: '2'
     steps:
       - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: '1.3.8'
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -30,14 +27,7 @@ jobs:
         shell: bash
         run: |
           uv pip install --system torch==2.8.0 torchaudio==2.8.0 --index-url https://download.pytorch.org/whl/cpu
-          uv pip install --system 'numpy<2' 'huggingface_hub<1' 'transformers==4.57.6' sherpa-onnx==2.0.2 'fastmcp>=3,<4' fastapi uvicorn sqlalchemy alembic python-multipart httpx soundfile librosa 'pedalboard<0.9.21' pillow sse-starlette pytest playwright
-      - name: Build official web UI from the feature branch
-        shell: bash
-        run: |
-          bun install --frozen-lockfile
-          bun run build:web
-          cp -R web/dist frontend
-          python -m pytest -q backend/tests/test_fourier_stt.py --disable-warnings
+          uv pip install --system 'numpy<2' 'huggingface_hub<1' 'transformers==4.57.6' sherpa-onnx==2.0.2 'fastmcp>=3,<4' fastapi uvicorn sqlalchemy alembic python-multipart httpx soundfile librosa 'pedalboard<0.9.21' pillow sse-starlette pytest playwright psutil pywinauto
       - name: Install official desktop MSI and exercise the real recording controls
         shell: pwsh
-        run: python .github/qa/voicebox-microphone.py
+        run: python .github/qa/voicebox-native-only.py

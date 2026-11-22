@@ -28,7 +28,6 @@ def put(path, data, method):
 
 
 def prepare_model():
-    put("/settings/captures", {"stt_model": qa.MODEL, "language":"en", "auto_refine":False}, "PUT")
     put("/models/download", {"model_name": qa.MODEL}, "POST")
     def ready():
         for record in qa.get("/tasks/active")["downloads"]:
@@ -98,6 +97,7 @@ def main():
     native=None; w=None
     try:
         qa.wait_for(lambda:qa.get("/health"),"Voicebox production server",90)
+        put("/settings/captures", {"stt_model": qa.MODEL, "language":"en", "auto_refine":False}, "PUT")
         native=subprocess.Popen([str(binary)],env=env)
         w=qa.wait_for(lambda:window(native.pid),"Windows installer app window",45)
         time.sleep(7)

@@ -89,7 +89,13 @@ def choose_and_download(page):
     page.locator('a[href="/captures"]').first.click()
     assert not get("/capture/readiness")["stt"]["ready"]
     page.get_by_role("button", name="Download", exact=True).first.click(timeout=30000)
-    wait_for(lambda: get("/capture/readiness")["stt"]["ready"], "complete original-card model download", 450)
+    def ready_or_error():
+        for task in get("/tasks/active")["downloads"]:
+            if task["model_name"] == MODEL and task["status"] == "error":
+                print("DOWNLOADER_ERROR", task, flush=True)
+                raise SystemExit("Fourier model transfer failed")
+        return get("/capture/readiness")["stt"]["ready"]
+    wait_for(ready_or_error, "complete original-card model download", 450)
     page.get_by_role("button", name="Dictate", exact=True).wait_for(timeout=45000)
     wait_for(lambda: all(row["model_name"] != MODEL for row in get("/tasks/active")["downloads"]), "download toast closes")
     print("UI_COLD_INSTALL selector/download/readiness/Dictate", flush=True)
@@ -140,6 +146,7 @@ def main():
                 choose_and_download(web)
                 record(web, "PR production web build, Chrome on Windows")
             except Exception:
+                print("TASKS", get("/tasks/active"), flush=True)
                 print("WEB_SCREEN", web.locator("body").inner_text()[:3000], flush=True)
                 raise
             finally:
